@@ -1,0 +1,8 @@
+# Copiar los valores que hagan falta a local.properties (no versionado, gitignored).
+# Android Studio genera sdk.dir automaticamente ahi; estas dos claves son especificas del proyecto.
+
+# Host del backend Spring Boot. 10.0.2.2 es el alias del emulador estandar de Android hacia el
+# localhost del host (donde corre "mvnw spring-boot:run"). Cambiar si se usa un dispositivo fisico
+# (IP de la red local del host) o un backend desplegado en otro lado.
+API_BASE_URL=http://10.0.2.2:8080
+WS_BASE_URL=ws://10.0.2.2:8080

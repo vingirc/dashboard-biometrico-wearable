@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Solo para builds debug: permite trafico HTTP sin cifrar hacia el backend de desarrollo
+  (que corre en plano HTTP, ver app.cookie.secure=false en application.properties del backend).
+  10.0.2.2 es el alias del emulador estandar de Android hacia el localhost del host.
+  No afecta un build de release contra un backend real en HTTPS.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">10.0.2.2</domain>
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
+</network-security-config>

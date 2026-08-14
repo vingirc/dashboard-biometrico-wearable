@@ -7,6 +7,7 @@ import mx.edu.utq.biometria.wear.data.notifications.AlertNotificationManager
 import mx.edu.utq.biometria.wear.data.remote.NetworkModule
 import mx.edu.utq.biometria.wear.data.sensors.HapticAlertManager
 import mx.edu.utq.biometria.wear.data.sensors.SensorTelemetryManager
+import mx.edu.utq.biometria.wear.data.session.SessionStateStore
 import mx.edu.utq.biometria.wear.data.telemetry.TelemetryRepository
 import mx.edu.utq.biometria.wear.data.ws.TelemetryWsClient
 import java.util.concurrent.TimeUnit
@@ -37,9 +38,13 @@ class BiometriaWearApplication : Application() {
     lateinit var alertNotificationManager: AlertNotificationManager
         private set
 
+    lateinit var sessionStateStore: SessionStateStore
+        private set
+
     override fun onCreate() {
         super.onCreate()
         authTokenStore = AuthTokenStore(this)
+        sessionStateStore = SessionStateStore(this)
         val authApi = NetworkModule.buildAuthApi(authTokenStore)
         authRepository = AuthRepository(authApi, authTokenStore)
 

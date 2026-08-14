@@ -21,6 +21,7 @@ import mx.edu.utq.biometria.wear.data.auth.AuthTokenStore
 import mx.edu.utq.biometria.wear.data.notifications.AlertNotificationManager
 import mx.edu.utq.biometria.wear.data.sensors.HapticAlertManager
 import mx.edu.utq.biometria.wear.data.sensors.SensorTelemetryManager
+import mx.edu.utq.biometria.wear.data.session.SessionStateStore
 import mx.edu.utq.biometria.wear.data.telemetry.TelemetryRepository
 import mx.edu.utq.biometria.wear.data.telemetry.TelemetryResult
 import mx.edu.utq.biometria.wear.data.ws.TelemetryWsClient
@@ -36,6 +37,7 @@ class HomeViewModel(
     private val telemetryWsClient: TelemetryWsClient,
     private val hapticAlertManager: HapticAlertManager,
     private val alertNotificationManager: AlertNotificationManager,
+    private val sessionStateStore: SessionStateStore,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -81,6 +83,13 @@ class HomeViewModel(
         _uiState.update {
             it.copy(permissionState = if (granted) PermissionState.GRANTED else PermissionState.DENIED)
         }
+        // Si la sesion habia quedado "Iniciada" cuando se cerro la app la ultima vez, se retoma
+        // sola apenas se confirma el permiso de sensor -- si no, la UI mostraria "Iniciada" pero
+        // sin mandar nada de verdad hasta que el usuario toque pausa/play a mano (justo lo que
+        // pasaba antes: cada apertura arrancaba en Pausada en silencio).
+        if (granted && sessionStateStore.wasActive() && _uiState.value.sessionState != SessionState.INICIADA) {
+            startSession()
+        }
     }
 
     fun requestPermissionAgain() {
@@ -116,6 +125,7 @@ class HomeViewModel(
         authTokenStore.getUsername()?.let { telemetryWsClient.connect(it) }
         sensorTelemetryManager.start()
         consecutiveSendFailures = 0
+        sessionStateStore.saveActive(true)
         _uiState.update { it.copy(sessionState = SessionState.INICIADA, sendError = null) }
         sendJob = viewModelScope.launch {
             while (isActive) {
@@ -139,6 +149,7 @@ class HomeViewModel(
         sendJob?.cancel()
         sendJob = null
         sensorTelemetryManager.stop()
+        sessionStateStore.saveActive(false)
         _uiState.update { it.copy(sessionState = SessionState.PAUSADA) }
     }
 
@@ -189,6 +200,9 @@ class HomeViewModel(
         sendJob?.cancel()
         sensorTelemetryManager.stop()
         telemetryWsClient.disconnect()
+        // Sin esto, un proximo login (misma cuenta u otra) resumiria mandando datos solo, sin que
+        // nadie haya tocado Iniciar -- confuso sobre todo si es una cuenta distinta.
+        sessionStateStore.saveActive(false)
 
         val token = authTokenStore.getToken()
         authTokenStore.clearToken()
@@ -211,6 +225,7 @@ class HomeViewModel(
                     telemetryWsClient = app.telemetryWsClient,
                     hapticAlertManager = app.hapticAlertManager,
                     alertNotificationManager = app.alertNotificationManager,
+                    sessionStateStore = app.sessionStateStore,
                 )
             }
         }
